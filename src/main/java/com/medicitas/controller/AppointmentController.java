@@ -8,6 +8,8 @@ import com.medicitas.model.Patient;
 import com.medicitas.repository.AppointmentRepository;
 import com.medicitas.repository.DoctorRepository;
 import com.medicitas.repository.PatientRepository;
+import com.medicitas.service.factory.NotificationFactory;
+import com.medicitas.notification.NotificationService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -32,6 +35,12 @@ public class AppointmentController {
 
     @Autowired
     private DoctorRepository doctorRepository;
+
+    @Autowired
+    private NotificationFactory notificationFactory;
+
+    // Formato de fecha legible con AM/PM
+    private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy 'a las' hh:mm a");
 
     // Convierte Appointment a DTO
     private AppointmentDTO convertToDTO(Appointment appointment) {
@@ -101,6 +110,19 @@ public class AppointmentController {
         }
 
         Appointment saved = appointmentRepository.save(appointment);
+
+        // 🔹 Enviar notificación por correo usando nombre completo y fecha legible
+        NotificationService notificationService = notificationFactory.createNotification("email");
+        String fechaFormateada = appointment.getAppointmentDate().format(FORMATTER);
+        notificationService.sendNotification(
+                appointment.getPatient().getEmail(),
+                "Confirmación de cita médica",
+                "Hola " + appointment.getPatient().getFirstName() + " " + appointment.getPatient().getLastName() +
+                        ", tu cita con el Dr. " + appointment.getDoctor().getFirstName() + " " +
+                        appointment.getDoctor().getLastName() +
+                        " ha sido registrada para el día " + fechaFormateada
+        );
+
         return ResponseEntity
                 .created(URI.create("/api/appointments/" + saved.getId()))
                 .body(convertToDTO(saved));
@@ -142,6 +164,19 @@ public class AppointmentController {
         appointment.setReason(dto.getReason());
 
         Appointment updated = appointmentRepository.save(appointment);
+
+        // 🔹 Notificación al actualizar usando nombre completo y fecha legible
+        NotificationService notificationService = notificationFactory.createNotification("email");
+        String fechaFormateada = appointment.getAppointmentDate().format(FORMATTER);
+        notificationService.sendNotification(
+                appointment.getPatient().getEmail(),
+                "Actualización de cita médica",
+                "Hola " + appointment.getPatient().getFirstName() + " " + appointment.getPatient().getLastName() +
+                        ", tu cita con el Dr. " + appointment.getDoctor().getFirstName() + " " +
+                        appointment.getDoctor().getLastName() +
+                        " ha sido actualizada para el día " + fechaFormateada
+        );
+
         return ResponseEntity.ok(convertToDTO(updated));
     }
 
