@@ -14,7 +14,7 @@ public class EmailNotificationService implements NotificationService {
     @Override
     public void sendNotification(String to, String subject, String message) {
         SimpleMailMessage mailMessage = new SimpleMailMessage();
-        mailMessage.setFrom("maldonadohector54@gmail.com"); // tu correo
+        mailMessage.setFrom("Tu Correo"); // tu correo
         mailMessage.setTo(to);
         mailMessage.setSubject(subject);
         mailMessage.setText(message);
